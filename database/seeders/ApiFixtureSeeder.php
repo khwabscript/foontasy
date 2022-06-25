@@ -3,10 +3,12 @@
 namespace Database\Seeders;
 
 use App\Api\ApiFootball;
-use App\Models\Fixture\ApiFixture;
-use App\Models\League\ApiLeague;
-use App\Models\Team\ApiTeam;
+use App\Enums\Api\Source;
+use App\Models\Fixture;
+use App\Models\League;
+use App\Models\Team;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
 
@@ -19,22 +21,22 @@ class ApiFixtureSeeder extends Seeder
      */
     public function run()
     {
-        $apiLeagues = ApiLeague::all();
+        $apiLeagues = League::api();
 
         foreach ($apiLeagues as $apiLeague) {
-            $this->seedFixtures($apiLeague->id);
+            $this->seedFixtures($apiLeague->external_id);
         }
     }
 
-    public function seedFixtures(ApiLeague $apiLeague): void
+    public function seedFixtures(League $apiLeague): void
     {
         $fixtures = json_decode(
-            Storage::disk('local')->get(ApiFootball::$fixturesPath . 'league/' . $apiLeague->id . '.json')
+            Storage::disk('local')->get(ApiFootball::$baseDir . 'league-fixtures/' . $apiLeague->external_id . '.json')
         );
 
         foreach ($fixtures as $fixture) {
             $teams = $fixture->teams;
-            $this->seedTeams($teams, $apiLeague);
+            $apiTeams = $this->seedTeams($teams, $apiLeague);
 
             // prepare data
             $isPostponed = ($fixture->fixture->status->long === 'Match Postponed');
@@ -42,47 +44,51 @@ class ApiFixtureSeeder extends Seeder
             $tour = (int) preg_replace('/\D/', '', $fixture->league->round);
 
             // set fields, that should be updated
-            $apiFixture = ApiFixture::find($fixture->fixture->id);
+            $apiFixture = Fixture::findInLeague($fixture->fixture->id, $apiLeague->id);
             $update = ['datetime', 'home_team_goals', 'away_team_goals'];
             if ($apiFixture && $apiFixture->tour === $apiFixture->fantasy_tour) {
                 $update[] = 'fantasy_tour';
             }
 
-            ApiFixture::upsert([
-                'id' => $fixture->fixture->id,
-                'api_league_id' => $fixture->league->id,
+            Fixture::upsert([
+                'external_id' => $fixture->fixture->id,
+                'league_id' => $apiLeague->id,
                 'datetime' => $datetime,
                 'tour' => $tour,
-                'fantasy_tour' => $isPostponed ? ApiFixture::POSTPONED_TOUR : $tour,
-                'home_team_id' => $teams->home->id,
-                'away_team_id' => $teams->away->id,
+                'fantasy_tour' => $isPostponed ? Fixture::POSTPONED_TOUR : $tour,
+                'home_team_id' => $apiTeams->firstWhere('external_id', $teams->home->id)->id,
+                'away_team_id' => $apiTeams->firstWhere('external_id', $teams->away->id)->id,
                 'home_team_goals' => $fixture->goals->home,
                 'away_team_goals' => $fixture->goals->away,
-            ], ['id'], $update);
+            ], ['external_id', 'league_id'], $update);
 
-            $apiFixture->attach([
-                $teams->home->id,
-                $teams->away->id,
-            ]);
+            if (is_null($apiFixture)) {
+                $apiFixture = Fixture::findInLeague($fixture->fixture->id, $apiLeague->id);
+            }
+
+            $apiFixture->teams()->syncWithoutDetaching($apiTeams);
         }
     }
 
-    public function seedTeams(object $teams, ApiLeague $apiLeague): void
+    public function seedTeams(object $teams, League $apiLeague): Collection
     {
-        ApiTeam::upsert([
+        Team::upsert([
             [
-                'id' => $teams->home->id,
+                'external_id' => $teams->home->id,
+                'source' => Source::Api,
                 'name' => $teams->home->name,
             ],
             [
-                'id' => $teams->away->id,
+                'external_id' => $teams->away->id,
+                'source' => Source::Api,
                 'name' => $teams->away->name,
             ],
-        ], ['id']);
+        ], ['external_id', 'source']);
 
-        $apiLeague->attach([
-            $teams->home->id,
-            $teams->away->id,
-        ]);
+        $apiTeams = Team::api()->whereExternalIdIn([$teams->home->id, $teams->away->id])->get();
+
+        $apiLeague->teams()->syncWithoutDetaching($apiTeams);
+
+        return $apiTeams;
     }
 }
