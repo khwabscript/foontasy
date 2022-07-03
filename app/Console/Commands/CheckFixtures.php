@@ -35,7 +35,7 @@ class CheckFixtures extends Command
         $season = $this->option('season');
 
         foreach ($apiLeagues as $apiLeague) {
-            app(ApiFootball::class)->getLeagueFixtures($apiLeague->id, $season);
+            app(ApiFootball::class)->getLeagueFixtures($apiLeague->external_id, $season);
             app(ApiFixtureSeeder::class)->seedFixtures($apiLeague);
         }
 
