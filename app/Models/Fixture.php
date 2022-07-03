@@ -43,6 +43,14 @@ class Fixture extends Model
     ];
 
     /**
+     * Get the events for the fixture.
+     */
+    public function events(): BelongsToMany
+    {
+        return $this->belongsToMany(Event::class, 'event_fixture');
+    }
+
+    /**
      * Get the league that has the fixture.
      *
      * @return BelongsTo
@@ -100,7 +108,7 @@ class Fixture extends Model
      */
     public function scopeFinished(Builder $query): Builder
     {
-        return $query->where('datetime', '<', now()->subHours(3));
+        return $query->where('datetime', '<', now()->subHours(2));
     }
 
     /**
