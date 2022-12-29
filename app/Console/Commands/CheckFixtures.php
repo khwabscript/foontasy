@@ -28,10 +28,10 @@ class CheckFixtures extends Command
      *
      * @return int
      */
-    public function handle()
+    public function handle(): int
     {
         $leagueArgument = $this->argument('league');
-        $apiLeagues = $leagueArgument === 'all' ? League::api() : League::where('name', $leagueArgument)->get();
+        $apiLeagues = $leagueArgument === 'all' ? League::api()->get() : League::where('name', $leagueArgument)->get();
         $season = $this->option('season');
 
         foreach ($apiLeagues as $apiLeague) {
@@ -39,6 +39,6 @@ class CheckFixtures extends Command
             app(ApiFixtureSeeder::class)->seedFixtures($apiLeague);
         }
 
-        return 0;
+        return self::SUCCESS;
     }
 }

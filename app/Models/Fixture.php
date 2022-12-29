@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\Api\Source;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -75,7 +76,7 @@ class Fixture extends Model
      */
     public function homeTeam(): BelongsTo
     {
-        return $this->belongsTo(Team::class, 'id', 'home_team_id');
+        return $this->belongsTo(Team::class, 'home_team_id');
     }
 
     /**
@@ -85,7 +86,7 @@ class Fixture extends Model
      */
     public function awayTeam(): BelongsTo
     {
-        return $this->belongsTo(Team::class, 'id', 'away_team_id');
+        return $this->belongsTo(Team::class, 'away_team_id');
     }
 
     /**
@@ -132,5 +133,19 @@ class Fixture extends Model
     public function scopeUpcoming(Builder $query): Builder
     {
         return $query->where('datetime', '>', now());
+    }
+
+    /**
+     * Get the fixture's score.
+     *
+     * @return Attribute
+     */
+    protected function score(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => is_null($this->home_team_goals) || is_null($this->away_team_goals)
+                ? null
+                : $this->home_team_goals . ':' . $this->away_team_goals,
+        );
     }
 }

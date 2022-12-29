@@ -7,13 +7,13 @@ use Illuminate\Support\Facades\Storage;
 
 class ApiFootball
 {
-    public static $baseDir = 'json/api-football/';
+    public static string $baseDir = 'json/api-football/';
 
-    private static $apiHost = 'v3.football.api-sports.io';
-    private static $apiKey = 'secret';
-    private static $apiUrl = 'https://v3.football.api-sports.io/';
-    private static $season = 2022;
-    private static $timezone = 'Europe/Moscow';
+    private static string $apiHost = 'v3.football.api-sports.io';
+    private static string $apiKey = 'secret';
+    private static string $apiUrl = 'https://v3.football.api-sports.io/';
+    private static int $season = 2022;
+    private static string $timezone = 'Europe/Moscow';
 
     public function __construct()
     {

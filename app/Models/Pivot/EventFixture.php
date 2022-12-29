@@ -2,6 +2,8 @@
 
 namespace App\Models\Pivot;
 
+use App\Models\Fixture;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class EventFixture extends Pivot
@@ -24,4 +26,12 @@ class EventFixture extends Pivot
     protected $casts = [
         'total' => 'integer'
     ];
+
+    /**
+     * Get the events for the player.
+     */
+    public function fixture(): BelongsTo
+    {
+        return $this->belongsTo(Fixture::class);
+    }
 }

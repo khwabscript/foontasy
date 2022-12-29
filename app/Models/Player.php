@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\Api\Source;
+use App\Models\Pivot\EventFixture;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -28,7 +30,17 @@ class Player extends Model
      */
     public function events(): BelongsToMany
     {
-        return $this->belongsToMany(Event::class, 'event_fixture');
+        return $this->belongsToMany(Event::class, 'event_fixture')
+            ->using(EventFixture::class)
+            ->withPivot('fixture_id', 'total');
+    }
+
+    /**
+     * Get the events for the player.
+     */
+    public function fixtures(): BelongsToMany
+    {
+        return $this->belongsToMany(Fixture::class, 'event_fixture');
     }
 
     /**
@@ -36,7 +48,19 @@ class Player extends Model
      */
     public function teams(): BelongsToMany
     {
-        return $this->belongsToMany(Team::class);
+        return $this->belongsToMany(Team::class)->withPivot('created_at')->orderByDesc('pivot_created_at');
+    }
+
+    /**
+     * Get the player's team.
+     *
+     * @return Attribute
+     */
+    protected function team(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): Team => $this->teams->first(),
+        );
     }
 
     /**
