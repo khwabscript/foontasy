@@ -4,6 +4,7 @@ namespace App\Api\DTO;
 
 use App\Api\DTO\ApiFixture;
 use App\Enums\Event;
+use App\Enums\LineupPosition;
 use App\Enums\Position;
 use Illuminate\Support\Collection;
 use Spatie\DataTransferObject\DataTransferObject;
@@ -11,6 +12,7 @@ use Spatie\DataTransferObject\DataTransferObject;
 class ApiPlayerStatistics extends DataTransferObject
 {
     public array $events = [];
+    public array $minuteInterval = [];
 
     public function __construct(
         public ?object $statistics,
@@ -24,7 +26,7 @@ class ApiPlayerStatistics extends DataTransferObject
 
         if (is_null(data_get($this->statistics, 'games.minutes'))) {
             $this->events = [
-                Event::Position->value => $this->getPositionId(),
+                Event::Position->value => $this->getPosition(),
                 Event::OnTheBench->value => 1,
             ];
             return;
@@ -55,8 +57,9 @@ class ApiPlayerStatistics extends DataTransferObject
             Event::Saves->value => $this->statistics->goals->saves,
             Event::YellowCards->value => $this->statistics->cards->yellow,
             Event::RedCards->value => $this->statistics->cards->red,
-            Event::Position->value => $this->getPositionId(),
-            // Event::LineupPosition->value => $this->getLineupPositionId($playerLineupPosition),
+            Event::Position->value => $this->getPosition(),
+            Event::LineupPosition->value => $this->getLineupPositionId(),
+            Event::Started->value => (int) $this->isPlayerStarted(),
         ];
     }
 
@@ -70,12 +73,38 @@ class ApiPlayerStatistics extends DataTransferObject
         return max($minutes, $this->minuteInterval[1] - $this->minuteInterval[0]);
     }
 
-    public function getLineupPositionId(string $position): ?int
+    public function isPlayerStarted(): bool
     {
-        return data_get($this->lineupPositions, $position);
+        return $this->fixture->startedPlayers->where('player.id', $this->playerId)->isNotEmpty();
     }
 
-    public function getPositionId(): ?Position
+    public function getPlayerLineupPosition(): ?string
+    {
+        $playerGrid = $this->fixture->startedPlayers->firstWhere('player.id', $this->playerId)->player->grid ?? null;
+        if (is_null($playerGrid)) {
+            return null;
+        }
+
+        $formation = $this->fixture->formations[$this->teamId];
+        preg_match('/(?<G>)(?<D>\d)\-(?<M>\d\-?\d?\-?\d?)\-(?<F>\d)/', $formation, $matches);
+
+        $playerPosition = $this->statistics->games->position;
+        $playerOrder = strlen($matches[$playerPosition]) === 1 ? (int) $matches[$playerPosition] : $matches[$playerPosition];
+        $playerLine = (int) explode(':', $playerGrid)[0];
+        $lineupPositions = config('constants.lineup_positions');
+
+        return $lineupPositions[$playerGrid] ??
+            $lineupPositions[$playerLine][$playerOrder][$playerGrid] ??
+            $lineupPositions[$formation][$playerGrid] ??
+            null;
+    }
+
+    public function getLineupPositionId(): ?int
+    {
+        return LineupPosition::api($this->getPlayerLineupPosition());
+    }
+
+    public function getPosition(): ?Position
     {
         return Position::api($this->statistics->games->position);
     }

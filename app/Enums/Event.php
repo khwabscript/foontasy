@@ -31,4 +31,5 @@ enum Event: string
     case DoublePenaltiesScored = 'Double penalties scored';
     case DoublePenaltiesSaved = 'Double penalties saved';
     case DoublePenaltiesMissed = 'Double penalties missed';
+    case Started = 'Started';
 }

@@ -14,13 +14,16 @@ use App\Models\League;
 use App\Models\Pivot\EventFixture;
 use App\Models\Player;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Storage;
 
 class ApiFixtureEventSeeder extends Seeder
 {
     public const NUM_PAST_DAYS = 14;
+
+    public Collection $events;
 
     private Fixture $fixture;
 
@@ -68,14 +71,14 @@ class ApiFixtureEventSeeder extends Seeder
 
         $statistics = data_get($player, 'statistics.0');
 
-        $apiPlayerStatistics = new ApiPlayerStatistics($statistics, $apiFixture, $apiPlayer->id, $teamId);
+        $apiPlayerStatistics = new ApiPlayerStatistics($statistics, $apiFixture, $apiPlayer->external_id, $teamId);
 
         $this->syncPlayerTeam($apiPlayer, $teamId, $apiPlayerStatistics, $statistics);
 
         $this->upsertPlayerEvents($apiPlayer, $apiPlayerStatistics);
     }
 
-    public function getFinishedFixtures(): Collection
+    public function getFinishedFixtures(): SupportCollection
     {
         # sort by date for right player_team table seed
         return $this->apiLeague->fixtures()
@@ -179,7 +182,7 @@ class ApiFixtureEventSeeder extends Seeder
         EventFixture::upsert($events, ['event_id', 'fixture_id', 'player_id'], ['total']);
     }
 
-    public function setEvents()
+    public function setEvents(): void
     {
         $this->events = Event::all();
     }

@@ -22,6 +22,10 @@ class ApiFixture extends DataTransferObject
 
     public array $players;
 
+    public array $formations;
+
+    public Collection $startedPlayers;
+
     public array $substitutedTwicePlayerIntervals;
 
     public Collection $substitutions;
@@ -42,6 +46,23 @@ class ApiFixture extends DataTransferObject
         $this->minutes = $this->getMinutes();
         $this->substitutions = $this->getSubstitutions();
         $this->substitutedTwicePlayerIntervals = $this->getSubstitutedTwicePlayerIntervals();
+        $this->startedPlayers = $this->getStartedPlayers();
+        $this->formations = $this->getFormations();
+    }
+
+    public function getFormations(): array
+    {
+        $lineups = $this->getLineups();
+
+        return [
+            data_get($lineups, '0.team.id') => data_get($lineups, '0.formation', ''),
+            data_get($lineups, '1.team.id') => data_get($lineups, '1.formation', ''),
+        ];
+    }
+
+    public function getLineups(): array
+    {
+        return $this->fixture->lineups;
     }
 
     public function getGoalsConceded(): array
@@ -83,6 +104,13 @@ class ApiFixture extends DataTransferObject
             data_get($this->fixture, 'players.0.team.id') => data_get($this->fixture, 'players.0.players', []),
             data_get($this->fixture, 'players.1.team.id') => data_get($this->fixture, 'players.1.players', []),
         ];
+    }
+
+    public function getStartedPlayers(): Collection
+    {
+        $lineups = $this->getLineups();
+
+        return collect(array_merge($lineups[0]->startXI ?? [], $lineups[1]->startXI ?? []));
     }
 
     public function getSubstitutions(): Collection
