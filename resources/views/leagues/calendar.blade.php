@@ -12,7 +12,7 @@
       </thead>
       <tbody class="bg-white divide-y divide-gray-200">
         @foreach($calendar as $weekFixtures)
-          <tr class="{{ $loop->index % 2 === 0 ? 'bg-gray-200' : 'bg-white' }}">
+          <tr>
             @foreach($weekFixtures as $weekDayFixtures)
               <x-td class="font-medium text-center" style="padding: 2rem">
                 {{ $weekDayFixtures['datetime']->format('j') }}<br>

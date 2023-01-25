@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Difficulty;
 use App\Models\League;
-use App\Models\Team;
-use Illuminate\Support\Collection;
+use App\Services\LeagueService;
 
 class LeagueController extends Controller
 {
@@ -15,15 +15,9 @@ class LeagueController extends Controller
      */
     public function fixtures(League $league)
     {
-        $teams = $league->teams()
-            ->with([
-                'fixtures' => fn ($query) => $query->upcoming()->leagueId($league->id)->orderBy('datetime'),
-            ])
-            ->get();
+        $teams = app(LeagueService::class)->getTeamsForFixtures($league);
 
-        $fantasyTourRange = $this->getFantasyTourRange(
-            $teams->pluck('fixtures')->flatten()->pluck('fantasy_tour')
-        );
+        $fantasyTourRange = app(LeagueService::class)->getFantasyTourRange($teams);
 
         if (is_null($fantasyTourRange)) {
             return view('errors.in-progress', [
@@ -32,21 +26,8 @@ class LeagueController extends Controller
             ]);
         }
 
-        $teams = $teams->sortBy(fn (Team $team) => __('teams.' . $team->name));
+        $difficultyEnum = Difficulty::class;
 
-        return view('leagues.fixtures', compact('teams', 'fantasyTourRange', 'league'));
-    }
-
-    public function getFantasyTourRange(Collection $fantasyTours, int $numTours = 4): ?array
-    {
-        $firstTour = $fantasyTours->countBy()->filter(fn ($count) => $count >= 4 * 2)->keys()->min();
-
-        if (is_null($firstTour)) {
-            return null;
-        }
-
-        $lastTour = $fantasyTours->filter(fn ($tour) => $tour > $firstTour && $tour < $firstTour + $numTours)->max();
-
-        return range($firstTour, $lastTour ?? $firstTour);
+        return view('leagues.fixtures', compact('teams', 'fantasyTourRange', 'league', 'difficultyEnum'));
     }
 }

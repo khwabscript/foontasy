@@ -9,12 +9,14 @@
 	</caption> --}}
   <thead>
     <tr>
-    	<x-th class="uppercase text-center">
-    		@lang('fixtures.Team')
+    	<x-th class="uppercase text-center" style="text-align: left;">
+        {{ 'Team' }}
+    		{{-- @lang('fixtures.Team') --}}
     	</x-th>
       @foreach($fantasyTourRange as $fantasyTour)
-        <x-th class="uppercase">
-        	@lang('fixtures.Gw', ['num' => $fantasyTour])
+        <x-th class="uppercase" style="text-align: left;">
+          {{ 'GW ' . $fantasyTour }}
+        	{{-- @lang('fixtures.Gw', ['num' => $fantasyTour]) --}}
         </x-th>
       @endforeach
     </tr>
@@ -28,10 +30,12 @@
     	</x-td>
       {{-- @foreach($team->fantasyFixtures as $fantasyFixture) --}}
     	@foreach($fantasyTourRange as $fantasyTour)
+        @php $difficulty = $team->getFantasyTourDifficulties($fantasyTour, $teams)->overall @endphp
         <x-td class="bg-gradient-to-tl 
         {{-- from-{{ $fantasyFixture->color }}-50 to-white --}}
-        ">
-        	{{ $team->fixtures->where('fantasy_tour', $fantasyTour)->pluck('teams')->flatten()->filter(fn ($t) => $t->id !== $team->id)->pluck('name')->join(PHP_EOL) }}
+        " style="color: {{ $difficulty === $difficultyEnum::Hard ? 'red' : ($difficulty === $difficultyEnum::Easy ? 'green' : 'orange') }}">
+        	{{-- {{ $team->fixtures->where('fantasy_tour', $fantasyTour)->pluck('teams')->flatten()->filter(fn ($t) => $t->id !== $team->id)->pluck('name')->join(PHP_EOL) }} --}}
+          {{ $team->getOpponents($fantasyTour)->pluck('name')->join(PHP_EOL) }}
         </x-td>
       @endforeach
     </tr>

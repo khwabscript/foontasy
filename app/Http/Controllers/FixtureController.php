@@ -40,7 +40,8 @@ class FixtureController extends Controller
                     ->transform(fn (Collection $fixtures) => (object) [
                         'league' => $fixtures->first()->league,
                         'deadline' => $fixtures->first()->datetime,
-                    ]),
+                    ])
+                    ->sortBy('deadline'),
             ];
         }
 
